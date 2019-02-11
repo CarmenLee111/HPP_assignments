@@ -14,7 +14,8 @@
 #define e 0.001 
 
 
-typedef struct celestial_bodies{
+typedef struct celestial_bodies
+{
     double                  x;
     double                  y;
     double                  mass;
@@ -22,6 +23,12 @@ typedef struct celestial_bodies{
     double                  vy;
     double                  brtness;
 }body;
+
+typedef struct vectors
+{
+    double                  x1;
+    double                  x2;
+}vector;
 
 
 
@@ -50,11 +57,11 @@ int main(int argc, char *argv[]) {
 
     /* time steps of the simulaiton */
     /* graphics */
-    const float circleRadius=0.025, circleColor=0;
-    const int windowWidth=800;
-    float L = 1, W = 1;
-    InitializeGraphics(argv[0], windowWidth, windowWidth);
-    SetCAxes(0,1);
+    // const float circleRadius=0.025, circleColor=0;
+    // const int windowWidth=800;
+    // float L = 1, W = 1;
+    // InitializeGraphics(argv[0], windowWidth, windowWidth);
+    // SetCAxes(0,1);
 
     //printf("Hit q to quit.\n");
     // while(!CheckForQuit())
@@ -62,12 +69,12 @@ int main(int argc, char *argv[]) {
     int i,j;
     for (j=0; j<n; j++) {
 
-        for (i=0; i<N; i++) {
-            DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
-        }
-        ClearScreen();
-        Refresh();
-        usleep(3000);
+        // for (i=0; i<N; i++) {
+        //     DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
+        // }
+        // ClearScreen();
+        // Refresh();
+        // usleep(3000);
 
         step(G, N, dt, B);
         // print results for each time step 
@@ -80,8 +87,8 @@ int main(int argc, char *argv[]) {
         */
     }
 
-    FlushDisplay();
-    CloseDisplay();
+    // FlushDisplay();
+    // CloseDisplay();
 
 
     FILE *fp;
@@ -102,7 +109,6 @@ int main(int argc, char *argv[]) {
     free(B3);
 #endif  
 
-
     
     free(B);
 
@@ -114,34 +120,34 @@ int main(int argc, char *argv[]) {
  */
 void step(double G, int N, double dt, body *B){
     int i,j;
-    
+    double rx=0, ry=0, r=0, fabs=0, ax=0, ay=0;
+    vector *F = calloc(N, sizeof(vector));
+
     for (i=0; i<N; i++) {
-        double rx=0, ry=0, r=0, Fx=0, Fy=0, fabs=0, ax=0, ay=0;
-        // printf("------Computation for Body %d------\n", i);
         for (j=0; j<N; j++) {
             if (i == j) {;}
             else {
                 rx = B[i].x - B[j].x;
                 ry = B[i].y - B[j].y;
                 r = sqrt(rx*rx + ry*ry);
-                // printf("Distance vector (%f, %f)\n", rx, ry);
                 fabs = - G * B[i].mass * B[j].mass / ((r+e)*(r+e)*(r+e));
-                Fx += fabs * rx; 
-                Fy += fabs * ry;
-                // printf("Force vector (%f, %f)\n", Fx, Fy);
+
+                F[i].x1 += fabs * rx; 
+                F[i].x2 += fabs * ry;
             }
         }
-        ax = Fx / B[i].mass;
-        ay = Fy / B[i].mass;
-        // printf("Acceleration vector (%f, %f)\n", ax, ay);
+    }
+
+    /* Another for-loop to update the value (Potential room for optimization????? */ 
+    for (i=0; i<N; i++) {
+        ax = F[i].x1 / B[i].mass;
+        ay = F[i].x2 / B[i].mass;
         B[i].vx += dt * ax;
         B[i].vy += dt * ay;
         B[i].x += dt * B[i].vx;
         B[i].y += dt * B[i].vy;
-        // printf("New velocity vector (%f, %f)\n", B[i].vx, B[i].vy);
-        // printf("New position vector (%f, %f)\n", B[i].x, B[i].y);
-
     }
+    free(F);
 }
 
 

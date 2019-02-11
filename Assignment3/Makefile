@@ -12,4 +12,4 @@ graphics.o: graphics/graphics.c graphics/graphics.h
 	gcc $(CFLAGS) $(INCLUDES) -c graphics/graphics.c
 
 clean:
-	rm -f *.o galsim
+	rm -f *.o galsim result.gal
