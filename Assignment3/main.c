@@ -11,8 +11,8 @@
  * graphics 1 or 0: graphics on/off
  */
 
-#define e 0.001 
-
+#define E 0.001 
+#define GRAPHICS_OPTION 1
 
 typedef struct celestial_bodies
 {
@@ -30,7 +30,8 @@ typedef struct vectors
     double                  x2;
 }vector;
 
-
+const float circleRadius=0.025, circleColor=0;
+const int windowWidth=800;
 
 /* from compare_gal_files, should add to header files */
 void load_data(int n, body *B, char* fileName);
@@ -51,45 +52,38 @@ int main(int argc, char *argv[]) {
     char *filename = argv[2];
     body *B = malloc(N * sizeof(body));
     load_data(N, B, filename);
-    int n = atoi(argv[3]);        // number of time steps
-    double dt = atof(argv[4]);    // time step
-    //int graphics = atoi(argv[5]); // graphics on or off  
+    int n = atoi(argv[3]);                  // number of time steps
+    double dt = atof(argv[4]);              // time step
+    // int graphics = atoi(argv[5]);    // graphics on or off  
+
+#if GRAPHICS_OPTION
+    float L = 1, W = 1;
+    InitializeGraphics(argv[0], windowWidth, windowWidth);
+    SetCAxes(0,1);
+
+    printf("Ctrl C to quit.\n");
+#endif
 
     /* time steps of the simulaiton */
-    /* graphics */
-    // const float circleRadius=0.025, circleColor=0;
-    // const int windowWidth=800;
-    // float L = 1, W = 1;
-    // InitializeGraphics(argv[0], windowWidth, windowWidth);
-    // SetCAxes(0,1);
-
-    //printf("Hit q to quit.\n");
-    // while(!CheckForQuit())
-
-    int i,j;
+    int j;
     for (j=0; j<n; j++) {
 
-        // for (i=0; i<N; i++) {
-        //     DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
-        // }
-        // ClearScreen();
-        // Refresh();
-        // usleep(3000);
-
-        step(G, N, dt, B);
-        // print results for each time step 
-        /*
-        printf("After time step %d\n", j+1);
+#if GRAPHICS_OPTION
+        int i;
+        ClearScreen();
         for (i=0; i<N; i++) {
-            printf("-------------- Body %d --------------\n", i);
-            body_info(&B[i]);
+            DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
         }
-        */
-    }
+        Refresh();
+        usleep(2000);
+#endif
+        step(G, N, dt, B);
+}
 
-    // FlushDisplay();
-    // CloseDisplay();
-
+#if GRAPHICS_OPTION
+    FlushDisplay();
+    CloseDisplay();
+#endif
 
     FILE *fp;
     fp = fopen("result.gal", "w");
@@ -98,11 +92,11 @@ int main(int argc, char *argv[]) {
 
     // Check the output file
     body *B2 = malloc(N * sizeof(body));
-    printf("******* result file: *******\n");
+    // printf("******* result file: *******\n");
     load_data(N, B2, "result.gal");
     free(B2);
 
-#if 1     // inspect data in ellipse_N_00010_after200steps
+#if 0     // inspect data in ellipse_N_00010_after200steps
     body *B3 = malloc(N * sizeof(body));
     printf("******* compare file ellipse_N_00010_after200steps: ******\n");
     load_data(N, B3, "ref_output_data/ellipse_N_00010_after200steps.gal");
@@ -130,7 +124,7 @@ void step(double G, int N, double dt, body *B){
                 rx = B[i].x - B[j].x;
                 ry = B[i].y - B[j].y;
                 r = sqrt(rx*rx + ry*ry);
-                fabs = - G * B[i].mass * B[j].mass / ((r+e)*(r+e)*(r+e));
+                fabs = - G * B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
 
                 F[i].x1 += fabs * rx; 
                 F[i].x2 += fabs * ry;
@@ -138,7 +132,7 @@ void step(double G, int N, double dt, body *B){
         }
     }
 
-    /* Another for-loop to update the value (Potential room for optimization????? */ 
+    /* For-loop to update the value (Potential room for optimization????? */ 
     for (i=0; i<N; i++) {
         ax = F[i].x1 / B[i].mass;
         ay = F[i].x2 / B[i].mass;
@@ -151,13 +145,13 @@ void step(double G, int N, double dt, body *B){
 }
 
 
-
+/* Printing information of bodies */
 void body_info(body *b) {
     printf("Position: \t(%f, %f)\nMass: \t\t%f\nVelocity: \t(%f, %f)\nBrtness: \t%f\n", 
         b->x, b->y, b->mass, b->vx, b->vy, b->brtness);
 }
 
-
+/* Load binary files */
 void load_data(int N, body *B, char* fileName) {
     FILE *fp = fopen(fileName, "rb");
     if (!fp) {
@@ -167,12 +161,11 @@ void load_data(int N, body *B, char* fileName) {
     
     fread(B, N*sizeof(body), 1, fp);
     
-    // Printing the info 
-    
-    int i;
-    for (i=0; i<N; i++) {
-        body_info(&(B[i]));
-    }
+    /* Printing the info */
+    // int i;
+    // for (i=0; i<N; i++) {
+    //     body_info(&(B[i]));
+    // }
 
     fclose(fp);
 }
