@@ -30,7 +30,7 @@ typedef struct vectors
     double                  x2;
 }vector;
 
-const float circleRadius=0.025, circleColor=0;
+const float circleRadius=0.005, circleColor=0;
 const int windowWidth=800;
 
 /* from compare_gal_files, should add to header files */
@@ -54,7 +54,10 @@ int main(int argc, char *argv[]) {
     load_data(N, B, filename);
     int n = atoi(argv[3]);                  // number of time steps
     double dt = atof(argv[4]);              // time step
-    // int graphics = atoi(argv[5]);    // graphics on or off  
+    int graphics = atoi(argv[5]);    // graphics on or off  
+
+    if (graphics == 1)
+        printf("Graphics option not available\n");
 
 #if GRAPHICS_OPTION
     float L = 1, W = 1;
@@ -68,19 +71,23 @@ int main(int argc, char *argv[]) {
     int j;
     for (j=0; j<n; j++) {
 
-#if GRAPHICS_OPTION
+    #if GRAPHICS_OPTION
         int i;
         ClearScreen();
         for (i=0; i<N; i++) {
             DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
         }
         Refresh();
-        usleep(2000);
-#endif
+        usleep(3000);
+    #endif
+
         step(G, N, dt, B);
 }
 
 #if GRAPHICS_OPTION
+    while(!CheckForQuit()){
+        usleep(200000);
+    }
     FlushDisplay();
     CloseDisplay();
 #endif
@@ -158,15 +165,7 @@ void load_data(int N, body *B, char* fileName) {
         printf("load_data error: failed to open input file '%s'.\n", fileName);
         return;
     }
-    
     fread(B, N*sizeof(body), 1, fp);
-    
-    /* Printing the info */
-    // int i;
-    // for (i=0; i<N; i++) {
-    //     body_info(&(B[i]));
-    // }
-
     fclose(fp);
 }
 
