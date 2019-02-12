@@ -48,7 +48,6 @@ int main(int argc, char *argv[]) {
 
     int N = atoi(argv[1]);
     double const G = (double) 100/N;
-    //printf("Number of bodies: %d\n", N);
     char *filename = argv[2];
     body *B = malloc(N * sizeof(body));
     load_data(N, B, filename);
@@ -63,7 +62,6 @@ int main(int argc, char *argv[]) {
     float L = 1, W = 1;
     InitializeGraphics(argv[0], windowWidth, windowWidth);
     SetCAxes(0,1);
-
     printf("Ctrl C to quit.\n");
 #endif
 
@@ -82,7 +80,7 @@ int main(int argc, char *argv[]) {
     #endif
 
         step(G, N, dt, B);
-}
+    }
 
 #if GRAPHICS_OPTION
     while(!CheckForQuit()){
@@ -97,22 +95,15 @@ int main(int argc, char *argv[]) {
     fwrite(B, N*sizeof(body), 1, fp);
     fclose(fp);
 
-    // Check the output file
-    body *B2 = malloc(N * sizeof(body));
-    // printf("******* result file: *******\n");
-    load_data(N, B2, "result.gal");
-    free(B2);
-
-#if 0     // inspect data in ellipse_N_00010_after200steps
-    body *B3 = malloc(N * sizeof(body));
-    printf("******* compare file ellipse_N_00010_after200steps: ******\n");
-    load_data(N, B3, "ref_output_data/ellipse_N_00010_after200steps.gal");
-    free(B3);
+#if 0    // Change to 1 to print/inspect the output binary file
+    // Inspect the output file
+    // body *B2 = malloc(N * sizeof(body));
+    // load_data(N, B2, "result.gal");
+    // body_info(&B2)
+    // free(B2);
 #endif  
-
     
     free(B);
-
     return 0;
 }
 
