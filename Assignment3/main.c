@@ -12,7 +12,7 @@
  */
 
 #define E 0.001 
-#define GRAPHICS_OPTION 1
+#define GRAPHICS_OPTION 0
 
 typedef struct celestial_bodies
 {
