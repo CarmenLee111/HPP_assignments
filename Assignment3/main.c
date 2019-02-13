@@ -45,7 +45,7 @@ typedef struct vectors
     double                  x2;
 }vector;
 
-const float circleRadius=0.005, circleColor=0.2;
+const float circleRadius=0.003, circleColor=0.2;
 const int windowWidth=800;
 
 /* from compare_gal_files, should add to header files */
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
         for (j=0; j<n; j++) {
             ClearScreen();
             for (i=0; i<N; i++) {
-                DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
+                DrawCircle(B[i].x, B[i].y, L, W, circleRadius*fabs(B[i].mass), circleColor);
             }
             Refresh();
             usleep(4000);
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
  */
 void step(double G, int N, double dt, body *B){
     int i,j;
-    double rx=0, ry=0, r=0, fabs=0, ax=0, ay=0;
+    double rx=0, ry=0, r=0, fab=0, ax=0, ay=0;
     vector *F = calloc(N, sizeof(vector));
 
     for (i=0; i<N; i++) {
@@ -160,10 +160,10 @@ void step(double G, int N, double dt, body *B){
                 rx = B[i].x - B[j].x;
                 ry = B[i].y - B[j].y;
                 r = sqrt(rx*rx + ry*ry);
-                fabs = - G * B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
+                fab = - G * B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
 
-                F[i].x1 += fabs * rx; 
-                F[i].x2 += fabs * ry;
+                F[i].x1 += fab * rx; 
+                F[i].x2 += fab * ry;
             }
         }
     }
