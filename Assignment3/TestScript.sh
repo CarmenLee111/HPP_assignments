@@ -39,8 +39,10 @@ make
 # rm result.gal
 
 
+
 touch testResult.txt
-echo Test out of order reading with no optmization | tee -a testResult.txt
+echo $(date -u) | tee -a testResult.txt
+echo Test out of order reading with dummies and O2 optimization | tee -a testResult.txt
 for i in 0 1 2 3
 do
     echo Timing 10 bodies 200 steps | tee -a testResult.txt

@@ -33,6 +33,8 @@ typedef struct celestial_bodies
     double                  vy;
     double                  brtness;
     double                  mass;
+    double                  dummy1;
+    double                  dummy2;
 }body;
 #endif
 
