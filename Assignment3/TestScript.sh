@@ -39,3 +39,42 @@ make
 # rm result.gal
 
 
+
+touch testResult.txt
+echo $(date -u) | tee -a testResult.txt
+echo Test out of order reading with dummies and O2 optimization | tee -a testResult.txt
+for i in 0 1 2 3
+do
+    echo Timing 10 bodies 200 steps | tee -a testResult.txt
+    (time ./galsim 10 input_data/ellipse_N_00010.gal 200 0.00001 0) 2>> testResult.txt
+    echo ---------------------- >> testResult.txt 
+done
+
+for i in 0 1 2 3
+do
+    echo Timing 20 bodies 200 steps | tee -a testResult.txt
+    (time ./galsim 20 input_data/ellipse_N_00020.gal 200 0.00001 0) 2>> testResult.txt
+    echo ---------------------- >> testResult.txt
+done
+
+for i in 0 1 2 3
+do
+    echo Timing 40 bodies 200 steps | tee -a testResult.txt
+    (time ./galsim 40 input_data/ellipse_N_00040.gal 200 0.00001 0) 2>> testResult.txt
+    echo ---------------------- >> testResult.txt
+done
+
+for i in 0 1 2 3
+do
+    echo Timing 80 bodies 200 steps | tee -a testResult.txt
+    (time ./galsim 80 input_data/ellipse_N_00080.gal 200 0.00001 0) 2>> testResult.txt
+    echo ---------------------- >> testResult.txt
+done
+
+for i in 0 1 2 3
+do
+    echo Timing 3000 bodies 100 steps | tee -a testResult.txt
+    (time ./galsim 3000 input_data/ellipse_N_03000.gal 100 0.00001 0) 2>> testResult.txt
+    echo ---------------------- >> testResult.txt
+done
+
