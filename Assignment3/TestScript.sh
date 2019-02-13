@@ -39,7 +39,6 @@ make
 # rm result.gal
 
 
-
 touch testResult.txt
 echo $(date -u) | tee -a testResult.txt
 echo Test out of order reading with dummies and O2 optimization | tee -a testResult.txt
