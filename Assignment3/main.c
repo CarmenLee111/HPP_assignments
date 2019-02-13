@@ -45,7 +45,7 @@ typedef struct vectors
     double                  x2;
 }vector;
 
-const float circleRadius=0.005, circleColor=0;
+const float circleRadius=0.005, circleColor=0.2;
 const int windowWidth=800;
 
 /* from compare_gal_files, should add to header files */
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
 #if STRUCTURE_OPTION    // option to load into the memory as it is ordered
         load_data(N, B, filename);
 
-        int i,j;
+        int j;
         for (j=0; j<n; j++) {
 
             step(G, N, dt, B);
@@ -110,7 +110,11 @@ int main(int argc, char *argv[]) {
 #endif
 
     } else {
+#if STRUCTURE_OPTION
         load_data(N, B, filename);
+#else 
+        load_data_outOfOrder(N, B, filename);
+#endif
 
         float L = 1, W = 1;
         InitializeGraphics(argv[0], windowWidth, windowWidth);
@@ -125,8 +129,9 @@ int main(int argc, char *argv[]) {
                 DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
             }
             Refresh();
-            usleep(3000);
+            usleep(4000);
             step(G, N, dt, B);
+
         }
         
         while(!CheckForQuit()){
