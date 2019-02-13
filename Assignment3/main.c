@@ -12,11 +12,9 @@
  */
 
 #define E 0.001 
-#define GRAPHICS_OPTION 0
 #define STRUCTURE_OPTION 0      // 1 in order, 0 out of order.
 
-#if STRUCTURE_OPTION
-
+#if STRUCTURE_OPTION            // selecting the structure option
 typedef struct celestial_bodies
 {
     double                  x;
@@ -26,9 +24,7 @@ typedef struct celestial_bodies
     double                  vy;
     double                  brtness;
 }body;
-
 #else 
-
 typedef struct celestial_bodies
 {
     double                  x;
@@ -38,7 +34,6 @@ typedef struct celestial_bodies
     double                  brtness;
     double                  mass;
 }body;
-
 #endif
 
 
@@ -69,83 +64,76 @@ int main(int argc, char *argv[]) {
     double const G = (double) 100/N;
     char *filename = argv[2];
     body *B = malloc(N * sizeof(body));
-
-#if STRUCTURE_OPTION    // option to try to access memory differently
-    load_data(N, B, filename);
-#else 
-    load_data_outOfOrder(N, B, filename);
-#endif
-
     int n = atoi(argv[3]);                  // number of time steps
     double dt = atof(argv[4]);              // time step
-    int graphics = atoi(argv[5]);    // graphics on or off  
-
-    if (graphics == 1)
-        printf("Graphics option not available\n");
-
-#if GRAPHICS_OPTION
-    float L = 1, W = 1;
-    InitializeGraphics(argv[0], windowWidth, windowWidth);
-    SetCAxes(0,1);
-    printf("Ctrl C to quit.\n");
-#endif
-
-    /* time steps of the simulaiton with optional graphics stuff */
-    int j;
-    for (j=0; j<n; j++) {
-
-    #if GRAPHICS_OPTION
-        int i;
-        ClearScreen();
-        for (i=0; i<N; i++) {
-            DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
-        }
-        Refresh();
-        usleep(3000);
-    #endif
-
-        step(G, N, dt, B);
-    }
-
-#if GRAPHICS_OPTION
-    while(!CheckForQuit()){
-        usleep(200000);
-    }
-    FlushDisplay();
-    CloseDisplay();
-#endif
-
-
-#if STRUCTURE_OPTION
-    /* Write the result to a output binray file */
-    FILE *fp;
-    fp = fopen("result.gal", "w");
-    fwrite(B, N*sizeof(body), 1, fp);
-    fclose(fp);
-#else 
-    FILE *fp;
-    fp = fopen("result.gal", "w");
-    int i;
-    for (i=0; i<N; i++) {
-        fwrite(&(B[i].x), sizeof(double), 1, fp);
-        fwrite(&(B[i].y), sizeof(double), 1, fp);
-        fwrite(&(B[i].mass), sizeof(double), 1, fp);
-        fwrite(&(B[i].vx), sizeof(double), 1, fp);
-        fwrite(&(B[i].vy), sizeof(double), 1, fp);
-        fwrite(&(B[i].brtness), sizeof(double), 1, fp);
-    }
-    fclose(fp);
-#endif
-
-
-#if 0    // Change to 1 to print/inspect the output binary file
-    // Inspect the output file
-    // body *B2 = malloc(N * sizeof(body));
-    // load_data(N, B2, "result.gal");
-    // body_info(&B2)
-    // free(B2);
-#endif  
+    int graphics = atoi(argv[5]);           // graphics on or off  
     
+    if (!graphics){
+
+#if STRUCTURE_OPTION    // option to load into the memory as it is ordered
+        load_data(N, B, filename);
+
+        int i,j;
+        for (j=0; j<n; j++) {
+
+            step(G, N, dt, B);
+        }
+
+        /* Write the result to a output binray file */
+        FILE *fp;
+        fp = fopen("result.gal", "w");
+        fwrite(B, N*sizeof(body), 1, fp);
+        fclose(fp);
+#else                   // option to load into the memory in a different order 
+        load_data_outOfOrder(N, B, filename);
+
+        int i,j;
+        for (j=0; j<n; j++) {
+
+            step(G, N, dt, B);
+        }
+
+        FILE *fp;
+        fp = fopen("result.gal", "w");
+
+        for (i=0; i<N; i++) {
+            fwrite(&(B[i].x), sizeof(double), 1, fp);
+            fwrite(&(B[i].y), sizeof(double), 1, fp);
+            fwrite(&(B[i].mass), sizeof(double), 1, fp);
+            fwrite(&(B[i].vx), sizeof(double), 1, fp);
+            fwrite(&(B[i].vy), sizeof(double), 1, fp);
+            fwrite(&(B[i].brtness), sizeof(double), 1, fp);
+        }
+        fclose(fp);
+#endif
+
+    } else {
+        load_data(N, B, filename);
+
+        float L = 1, W = 1;
+        InitializeGraphics(argv[0], windowWidth, windowWidth);
+        SetCAxes(0,1);
+        printf("Ctrl C to quit.\n");
+
+        /* time steps of the simulaiton with optional graphics stuff */
+        int i,j;
+        for (j=0; j<n; j++) {
+            ClearScreen();
+            for (i=0; i<N; i++) {
+                DrawCircle(B[i].x, B[i].y, L, W, circleRadius, circleColor);
+            }
+            Refresh();
+            usleep(3000);
+            step(G, N, dt, B);
+        }
+        
+        while(!CheckForQuit()){
+            usleep(200000);
+        }
+        FlushDisplay();
+        CloseDisplay();
+    }   
+ 
     free(B);
     return 0;
 }
