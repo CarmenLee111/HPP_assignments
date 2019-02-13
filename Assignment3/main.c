@@ -13,6 +13,9 @@
 
 #define E 0.001 
 #define GRAPHICS_OPTION 0
+#define STRUCTURE_OPTION 0      // 1 in order, 0 out of order.
+
+#if STRUCTURE_OPTION
 
 typedef struct celestial_bodies
 {
@@ -23,6 +26,21 @@ typedef struct celestial_bodies
     double                  vy;
     double                  brtness;
 }body;
+
+#else 
+
+typedef struct celestial_bodies
+{
+    double                  x;
+    double                  y;
+    double                  vx;
+    double                  vy;
+    double                  brtness;
+    double                  mass;
+}body;
+
+#endif
+
 
 typedef struct vectors
 {
@@ -37,6 +55,7 @@ const int windowWidth=800;
 void load_data(int n, body *B, char* fileName);
 void body_info(body *b);
 void step(double G, int N, double dt, body *B);
+void load_data_outOfOrder(int n, body *B, char* fileName);
 
 
 int main(int argc, char *argv[]) {
@@ -50,7 +69,13 @@ int main(int argc, char *argv[]) {
     double const G = (double) 100/N;
     char *filename = argv[2];
     body *B = malloc(N * sizeof(body));
+
+#if STRUCTURE_OPTION    // option to try to access memory differently
     load_data(N, B, filename);
+#else 
+    load_data_outOfOrder(N, B, filename);
+#endif
+
     int n = atoi(argv[3]);                  // number of time steps
     double dt = atof(argv[4]);              // time step
     int graphics = atoi(argv[5]);    // graphics on or off  
@@ -65,7 +90,7 @@ int main(int argc, char *argv[]) {
     printf("Ctrl C to quit.\n");
 #endif
 
-    /* time steps of the simulaiton */
+    /* time steps of the simulaiton with optional graphics stuff */
     int j;
     for (j=0; j<n; j++) {
 
@@ -90,10 +115,28 @@ int main(int argc, char *argv[]) {
     CloseDisplay();
 #endif
 
+
+#if STRUCTURE_OPTION
+    /* Write the result to a output binray file */
     FILE *fp;
     fp = fopen("result.gal", "w");
     fwrite(B, N*sizeof(body), 1, fp);
     fclose(fp);
+#else 
+    FILE *fp;
+    fp = fopen("result.gal", "w");
+    int i;
+    for (i=0; i<N; i++) {
+        fwrite(&(B[i].x), sizeof(double), 1, fp);
+        fwrite(&(B[i].y), sizeof(double), 1, fp);
+        fwrite(&(B[i].mass), sizeof(double), 1, fp);
+        fwrite(&(B[i].vx), sizeof(double), 1, fp);
+        fwrite(&(B[i].vy), sizeof(double), 1, fp);
+        fwrite(&(B[i].brtness), sizeof(double), 1, fp);
+    }
+    fclose(fp);
+#endif
+
 
 #if 0    // Change to 1 to print/inspect the output binary file
     // Inspect the output file
@@ -157,6 +200,26 @@ void load_data(int N, body *B, char* fileName) {
         return;
     }
     fread(B, N*sizeof(body), 1, fp);
+    fclose(fp);
+}
+
+
+/* Load binary files out of order */
+void load_data_outOfOrder(int N, body *B, char* fileName) {
+    FILE *fp = fopen(fileName, "rb");
+    if (!fp) {
+        printf("load_data error: failed to open input file '%s'.\n", fileName);
+        return;
+    }
+    int i;
+    for (i=0; i<N; i++) {
+        fread(&(B[i].x), sizeof(double), 1, fp);
+        fread(&(B[i].y), sizeof(double), 1, fp);
+        fread(&(B[i].mass), sizeof(double), 1, fp);
+        fread(&(B[i].vx), sizeof(double), 1, fp);
+        fread(&(B[i].vy), sizeof(double), 1, fp);
+        fread(&(B[i].brtness), sizeof(double), 1, fp);
+    }
     fclose(fp);
 }
 
