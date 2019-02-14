@@ -153,22 +153,41 @@ void step(double G, int N, double dt, body *B){
     double rx=0, ry=0, r=0, fab=0, ax=0, ay=0;
     vector *F = calloc(N, sizeof(vector));
 
-    for (i=0; i<N; i++) {
-        for (j=0; j<N; j++) {
-            if (i == j) {;}
-            else {
-                rx = B[i].x - B[j].x;
-                ry = B[i].y - B[j].y;
-                r = sqrt(rx*rx + ry*ry);
-                fab = - G * B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
+    /* Inefficient way of calculating forces  */
+    // for (i=0; i<N; i++) {
+    //         for (j=0; j<N; j++) {
+    //         if (i == j) {;}
+    //         else {
+    //             rx = B[i].x - B[j].x;
+    //             ry = B[i].y - B[j].y;
+    //             r = sqrt(rx*rx + ry*ry);
+    //             fab = - G * B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
 
-                F[i].x1 += fab * rx; 
-                F[i].x2 += fab * ry;
-            }
+    //             F[i].x1 += fab * rx; 
+    //             F[i].x2 += fab * ry;
+    //         }
+    //     }
+    //     printf("(%f, %f)", F[i].x1, F[i].x2);
+    // }
+
+    for (i=0; i<N; i++) {
+        for (j=i+1; j<N; j++) {
+            rx = B[i].x - B[j].x;
+            ry = B[i].y - B[j].y;
+            r = sqrt(rx*rx + ry*ry);
+            fab = - G * B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
+
+            F[i].x1 += fab * rx; 
+            F[i].x2 += fab * ry;
+            F[j].x1 -= fab * rx;
+            F[j].x2 -= fab * ry;
         }
+        // printf("(%f, %f)", F[i].x1, F[i].x2);
     }
 
-    /* For-loop to update the value (Potential room for optimization????? */ 
+    // printf(" \n");
+
+    /* For-loop to update the value */ 
     for (i=0; i<N; i++) {
         ax = F[i].x1 / B[i].mass;
         ay = F[i].x2 / B[i].mass;
