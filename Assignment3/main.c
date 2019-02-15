@@ -1,5 +1,6 @@
 #include <math.h>
 #include "graphics/graphics.h"
+#include <sys/time.h>
 
 
 /* Galaxy simulation
@@ -12,47 +13,40 @@
  */
 
 #define E 0.001 
-#define STRUCTURE_OPTION 0      // 1 in order, 0 out of order.
-
-#if STRUCTURE_OPTION            // selecting the structure option
-typedef struct celestial_bodies
-{
-    double                  x;
-    double                  y;
-    double                  mass;
-    double                  vx;
-    double                  vy;
-    double                  brtness;
-}body;
-#else 
-typedef struct celestial_bodies
-{
-    double                  x;
-    double                  y;
-    double                  vx;
-    double                  vy;
-    double                  brtness;
-    double                  mass;
-    double                  dummy1;
-    double                  dummy2;
-}body;
-#endif
-
+#define STRUCTURE_OPTION 1     // 1 with structure, 0 with arrays
 
 typedef struct vectors
 {
-    double                  x1;
-    double                  x2;
+    double                  v[2];
 }vector;
 
-const float circleRadius=0.003, circleColor=0.2;
-const int windowWidth=800;
+typedef struct celestial_bodies
+{
+    double                  x;
+    double                  y;
+    double                  mass;
+    double                  vx;
+    double                  vy;
+    double                  brtness;
+}body;
 
-/* from compare_gal_files, should add to header files */
+#if STRUCTURE_OPTION            // selecting the structure option
+
 void load_data(int n, body *B, char* fileName);
-void body_info(body *b);
 void step(double G, int N, double dt, body *B);
-void load_data_outOfOrder(int n, body *B, char* fileName);
+
+
+
+#else 
+
+void load_data_noStruct(int N, vector *x, double *m, vector *v, double *b, char* fileName);
+void step2(double G, int N, double dt, vector *x, double *m, vector *v);
+
+
+#endif
+
+static double get_wall_seconds();
+
 
 
 int main(int argc, char *argv[]) {
@@ -65,56 +59,84 @@ int main(int argc, char *argv[]) {
     int N = atoi(argv[1]);
     double const G = (double) 100/N;
     char *filename = argv[2];
-    body *B = malloc(N * sizeof(body));
     int n = atoi(argv[3]);                  // number of time steps
     double dt = atof(argv[4]);              // time step
     int graphics = atoi(argv[5]);           // graphics on or off  
+    body *B = malloc(N * sizeof(body));
+    vector *x = malloc(N*sizeof(vector));
+    vector *v = malloc(N*sizeof(vector));
+    double *m = malloc(N*sizeof(double));
+    double *b = malloc(N*sizeof(double));
+
     
     if (!graphics){
 
 #if STRUCTURE_OPTION    // option to load into the memory as it is ordered
-        load_data(N, B, filename);
 
+        double startTime1 = get_wall_seconds();
+        load_data(N, B, filename);
+        double secondsTaken1 = get_wall_seconds() - startTime1;
+        printf("secondsTaken for loading all into B: %f\n", secondsTaken1);
+
+        startTime1 = get_wall_seconds();
         int j;
         for (j=0; j<n; j++) {
-
             step(G, N, dt, B);
         }
+        secondsTaken1 = get_wall_seconds() - startTime1;
+        printf("secondsTaken for stepping: %f\n", secondsTaken1);
 
+        startTime1 = get_wall_seconds();
         /* Write the result to a output binray file */
         FILE *fp;
         fp = fopen("result.gal", "w");
         fwrite(B, N*sizeof(body), 1, fp);
         fclose(fp);
-#else                   // option to load into the memory in a different order 
-        load_data_outOfOrder(N, B, filename);
+        secondsTaken1 = get_wall_seconds() - startTime1;
+        printf("secondsTaken for writing: %f\n", secondsTaken1);
 
+
+#else                   // option to gather the same variable in one array. Much slower for some reason 
+
+        double startTime1 = get_wall_seconds();
+        load_data_noStruct(N, x, m, v, b, filename);
+        double secondsTaken1 = get_wall_seconds() - startTime1;
+        printf("secondsTaken for loading all into B into arrays: %f\n", secondsTaken1);
+
+        startTime1 = get_wall_seconds();
         int i,j;
         for (j=0; j<n; j++) {
-
-            step(G, N, dt, B);
+            step2(G, N, dt, x, m, v);
         }
+        secondsTaken1 = get_wall_seconds() - startTime1;
+        printf("secondsTaken for stepping with arrays %f\n", secondsTaken1);
 
+        startTime1 = get_wall_seconds();
         FILE *fp;
         fp = fopen("result.gal", "w");
 
         for (i=0; i<N; i++) {
-            fwrite(&(B[i].x), sizeof(double), 1, fp);
-            fwrite(&(B[i].y), sizeof(double), 1, fp);
-            fwrite(&(B[i].mass), sizeof(double), 1, fp);
-            fwrite(&(B[i].vx), sizeof(double), 1, fp);
-            fwrite(&(B[i].vy), sizeof(double), 1, fp);
-            fwrite(&(B[i].brtness), sizeof(double), 1, fp);
+            fwrite(&(x[i]), sizeof(double), 2, fp);
+            fwrite(&(m[i]), sizeof(double), 1, fp);
+            fwrite(&(v[i]), sizeof(double), 2, fp);
+            fwrite(&(b[i]), sizeof(double), 1, fp);
         }
         fclose(fp);
+        secondsTaken1 = get_wall_seconds() - startTime1;
+        printf("secondsTaken for writing %f\n", secondsTaken1);
+
+
+
+
 #endif
 
     } else {
+        
 #if STRUCTURE_OPTION
+        const float circleRadius=0.003, circleColor=0.2;
+        const int windowWidth=800;
         load_data(N, B, filename);
-#else 
-        load_data_outOfOrder(N, B, filename);
-#endif
+
 
         float L = 1, W = 1;
         InitializeGraphics(argv[0], windowWidth, windowWidth);
@@ -139,72 +161,28 @@ int main(int argc, char *argv[]) {
         }
         FlushDisplay();
         CloseDisplay();
+
+#else 
+        printf("Change STRUCTURE_OPTION to enable graphics\n");
+
+#endif
+
+
+
     }   
  
+
+
+    free(x);
+    free(v);
+    free(m);
+    free(b);
     free(B);
     return 0;
 }
 
 
-/* Stepping function that computes/assigns the new velocity and position
- */
-void step(double G, int N, double dt, body *B){
-    int i,j;
-    double rx=0, ry=0, r=0, fab=0, ax=0, ay=0;
-    vector *F = calloc(N, sizeof(vector));
 
-    /* Inefficient way of calculating forces  */
-    // for (i=0; i<N; i++) {
-    //         for (j=0; j<N; j++) {
-    //         if (i == j) {;}
-    //         else {
-    //             rx = B[i].x - B[j].x;
-    //             ry = B[i].y - B[j].y;
-    //             r = sqrt(rx*rx + ry*ry);
-    //             fab = - G * B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
-
-    //             F[i].x1 += fab * rx; 
-    //             F[i].x2 += fab * ry;
-    //         }
-    //     }
-    //     printf("(%f, %f)", F[i].x1, F[i].x2);
-    // }
-
-    for (i=0; i<N; i++) {
-        for (j=i+1; j<N; j++) {
-            rx = B[i].x - B[j].x;
-            ry = B[i].y - B[j].y;
-            r = sqrt(rx*rx + ry*ry);
-            fab = - G * B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
-
-            F[i].x1 += fab * rx; 
-            F[i].x2 += fab * ry;
-            F[j].x1 -= fab * rx;
-            F[j].x2 -= fab * ry;
-        }
-        // printf("(%f, %f)", F[i].x1, F[i].x2);
-    }
-
-    // printf(" \n");
-
-    /* For-loop to update the value */ 
-    for (i=0; i<N; i++) {
-        ax = F[i].x1 / B[i].mass;
-        ay = F[i].x2 / B[i].mass;
-        B[i].vx += dt * ax;
-        B[i].vy += dt * ay;
-        B[i].x += dt * B[i].vx;
-        B[i].y += dt * B[i].vy;
-    }
-    free(F);
-}
-
-
-/* Printing information of bodies */
-void body_info(body *b) {
-    printf("Position: \t(%f, %f)\nMass: \t\t%f\nVelocity: \t(%f, %f)\nBrtness: \t%f\n", 
-        b->x, b->y, b->mass, b->vx, b->vy, b->brtness);
-}
 
 /* Load binary files */
 void load_data(int N, body *B, char* fileName) {
@@ -217,9 +195,50 @@ void load_data(int N, body *B, char* fileName) {
     fclose(fp);
 }
 
+/* Stepping function that computes/assigns the new velocity and position
+ */
+void step(double G, int N, double dt, body *B){
+    int i,j;
+    double rx, ry, r, fab;
+    vector *F = calloc(N, sizeof(vector));
 
-/* Load binary files out of order */
-void load_data_outOfOrder(int N, body *B, char* fileName) {
+    double Gdt = G * dt;
+
+    for (i=0; i<N; i++) {
+        for (j=i+1; j<N; j++) {
+            rx = B[i].x - B[j].x;
+            ry = B[i].y - B[j].y;
+            r = sqrt(rx*rx + ry*ry);
+            fab = - B[i].mass * B[j].mass / ((r+E)*(r+E)*(r+E));
+
+            (F[i]).v[0] += fab * rx; 
+            (F[i]).v[1] += fab * ry;
+            (F[j]).v[0] -= fab * rx;
+            (F[j]).v[1] -= fab * ry;
+        }
+
+        double invm = 1 / B[i].mass;
+        B[i].vx += Gdt * (F[i]).v[0] * invm;
+        B[i].vy += Gdt * (F[i]).v[1] * invm;
+        B[i].x += dt * B[i].vx;
+        B[i].y += dt * B[i].vy;
+
+    }
+
+    // for (i=0; i<N; i++) {
+    //     double invm = 1 / B[i].mass;
+    //     B[i].vx += Gdt * (F[i]).v[0] * invm;
+    //     B[i].vy += Gdt * (F[i]).v[1] * invm;
+    //     B[i].x += dt * B[i].vx;
+    //     B[i].y += dt * B[i].vy;
+    // }
+
+    free(F);
+}
+
+
+/* load_data function for the array option */
+void load_data_noStruct(int N, vector *x, double *m, vector *v, double *b, char* fileName) {
     FILE *fp = fopen(fileName, "rb");
     if (!fp) {
         printf("load_data error: failed to open input file '%s'.\n", fileName);
@@ -227,15 +246,61 @@ void load_data_outOfOrder(int N, body *B, char* fileName) {
     }
     int i;
     for (i=0; i<N; i++) {
-        fread(&(B[i].x), sizeof(double), 1, fp);
-        fread(&(B[i].y), sizeof(double), 1, fp);
-        fread(&(B[i].mass), sizeof(double), 1, fp);
-        fread(&(B[i].vx), sizeof(double), 1, fp);
-        fread(&(B[i].vy), sizeof(double), 1, fp);
-        fread(&(B[i].brtness), sizeof(double), 1, fp);
+        fread(&(x[i]), sizeof(double), 2, fp);
+        fread(&(m[i]), sizeof(double), 1, fp);
+        fread(&(v[i]), sizeof(double), 2, fp);
+        fread(&(b[i]), sizeof(double), 1, fp);
     }
     fclose(fp);
 }
 
+/* Stepping function for the array option */
+void step2(double G, int N, double dt, vector *x, double *m, vector *v){
+    int i,j;
+    double rx=0, ry=0, r=0;
+    vector *F = calloc(N, sizeof(vector));
+    const double Gdt = G * dt;
+
+    for (i=0; i<N; i++) {
+      
+        for (j=i+1; j<N; j++) {
+            rx = x[i].v[0] - x[j].v[0];
+            ry = x[i].v[1] - x[j].v[1];
+            r = sqrt(rx*rx + ry*ry);
+            double fab = - m[i] * m[j] /((r+E)*(r+E)*(r+E));
+
+            F[i].v[0] += fab * rx; 
+            F[i].v[1] += fab * ry;
+            F[j].v[0] -= fab * rx;
+            F[j].v[1] -= fab * ry;
+
+        }
+        double invm = 1 / m[i];
+
+        v[i].v[0] += Gdt * F[i].v[0] * invm;
+        v[i].v[1] += Gdt * F[i].v[1] * invm;
+
+        x[i].v[0] += dt * v[i].v[0];
+        x[i].v[1] += dt * v[i].v[1];
+    }
+
+    // for (i=0; i<N; i++) {
+    //     double invm = 1 / m[i];
+
+    //     v[i].v[0] += Gdt * F[i].v[0] * invm;
+    //     v[i].v[1] += Gdt * F[i].v[1] * invm;
+
+    //     x[i].v[0] += dt * v[i].v[0];
+    //     x[i].v[1] += dt * v[i].v[1];
+    // }
+
+    free(F);
+}
 
 
+static double get_wall_seconds() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double seconds = tv.tv_sec + (double)tv.tv_usec / 1000000;
+  return seconds;
+}
