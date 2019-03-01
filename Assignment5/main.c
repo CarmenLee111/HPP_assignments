@@ -3,6 +3,8 @@
 #include <math.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include "graphics/graphics.h"
+
 
 
 
@@ -62,6 +64,7 @@ void qt_print(qt *t);
 void force_BH_one_body(double G, vector* c, double *m, qt *t, vector *f, double theta);
 int check_quadrant(vector c, vector p);
 void * thread_force(void *arg);
+int timer(void);
 
 
 int main(int argc, char *argv[]) {
@@ -77,16 +80,26 @@ int main(int argc, char *argv[]) {
     const int n = atoi(argv[3]);                  // number of time steps
     const double dt = atof(argv[4]);              // time step
     const float theta = atof(argv[5]);
-    int graphics = atoi(argv[5]);           // graphics not available    
+    int graphics = atoi(argv[6]);           // graphics not available    
     const int n_threads = atoi(argv[7]);
+    int starttime, ttime1=0, ttime2=0;                       // Wall time log
 
-    if (graphics == 1) printf("Graphics not available.\n");
 
     vector *C = malloc(N * sizeof(vector));
     vector *V = malloc(N * sizeof(vector));
     double *M = malloc(N * sizeof(double));
     double *b = malloc(N * sizeof(double));    
     load_data(N, C, V, M, b, filename);
+
+    const float circleRadius=0.002, circleColor=0.2;
+    const int windowWidth=800;
+    const float L = 1, W = 1;
+
+    if (graphics) {
+        InitializeGraphics(argv[0], windowWidth, windowWidth);
+        SetCAxes(0,1);
+        printf("Ctrl C to quit.\n");
+    }
 
     // Stepping
     int i,j;
@@ -106,11 +119,11 @@ int main(int argc, char *argv[]) {
         void *status;
 
         long rank;
+        starttime = timer();
         pthread_t threads[n_threads];
         for (rank=0; rank<n_threads; rank++) {
             thread_data[rank].rank = rank;
             thread_data[rank].t = t;
-            // thread_data[rank].B = B;
             thread_data[rank].C = C;
             thread_data[rank].F = F;
             thread_data[rank].M = M;
@@ -124,7 +137,9 @@ int main(int argc, char *argv[]) {
         for (rank=0; rank<n_threads; rank++) {
             pthread_join(threads[rank], &status);
         }
+        ttime1 += timer()-starttime;
 
+        starttime = timer();
         for (i=0; i<N; i++) {
             // printf("(%f, %f)\n", F[i].x, F[i].y );
             // Update the velocity and position
@@ -133,14 +148,36 @@ int main(int argc, char *argv[]) {
             C[i].x +=  V[i].x * dt;
             C[i].y +=  V[i].y * dt;
         }
+        ttime2 += timer()-starttime;
+
+        if (graphics) {
+            ClearScreen();
+            for (i=0; i<N; i++) {
+                DrawCircle(C[i].x, C[i].y, L, W, circleRadius, circleColor);
+            }
+            Refresh();
+            usleep(4000);
+        }
 
         free(F);
         qt_del(&t);
         free(t);           // Added since submission
     }
 
+    if (graphics) {
+        while(!CheckForQuit()) {
+            usleep(200000);
+        }
+        FlushDisplay();
+        CloseDisplay();
+    }
+
+
+    printf("Walltime for the threads in force calculation: %f\n", ttime1/1000000.0);
+    printf("Walltime for the threads in position updates: %f\n", ttime2/1000000.0);
+
+
     char outputfile[11] = "result.gal";
-    printf("Saving output file: %s\n", outputfile);
     write_data(N, C, V, M, b, outputfile);
 
     free(C); free(V), free(M), free(b);
@@ -176,6 +213,7 @@ void * thread_force(void *arg) {
 }
 
 
+/* Effectively computes the acceleration for one body */
 void force_BH_one_body(double G, vector *c, double *m, qt *t, vector *f, double theta) {
     // node does not exist
     if (!t) {
@@ -302,7 +340,7 @@ void qt_add(qt **t, qt *tadd){
         (*t)->c.x = (((*t)->c.x)*m1 + (tadd->c.x)*(tadd->m))/((*t)->m);
         (*t)->c.y = (((*t)->c.y)*m1 + (tadd->c.y)*(tadd->m))/((*t)->m);
 
-        //Check the quadrant and insert the original node there
+        // Check the quadrant and insert the original node there
         switch (check_quadrant(tnew->c, (*t)->p)) {
             case 1: {
                 tnew->p.x = ((*t)->p.x) - tnew->h;
@@ -413,7 +451,6 @@ void qt_print(qt *t) {
         qt_print(t->ne);
         qt_print(t->sw);
         qt_print(t->se);
-
     }
 }
 
@@ -447,6 +484,13 @@ void write_data(int N, vector* C, vector* V, double* M, double* b, char* filenam
     fclose(fp);
 }
 
+
+int timer(void)
+{
+  struct timeval tv;
+  gettimeofday(&tv, (struct timezone*)0);
+  return (tv.tv_sec*1000000+tv.tv_usec);
+}
 
 
 
