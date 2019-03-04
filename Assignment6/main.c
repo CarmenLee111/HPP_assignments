@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     const int n = atoi(argv[3]);                  // number of time steps
     const double dt = atof(argv[4]);              // time step
     const float theta = atof(argv[5]);
-    int graphics = atoi(argv[6]);           // graphics not available    
+    const int graphics = atoi(argv[6]);           // graphics not available    
     const int n_threads = atoi(argv[7]);
         int starttime, ttime=0;                       // Wall time log
 
@@ -93,14 +93,14 @@ int main(int argc, char *argv[]) {
     #endif
 
     starttime = timer();
-#   pragma omp parallel num_threads(n_threads)
+#   pragma omp parallel num_threads(n_threads)  // Scheduling???
     {
-#       pragma omp for 
+#       pragma omp for schedule(dynamic, 4)
         for (i=0; i<N; i++) {
             force_BH_one_body(G, &(C[i]), &(M[i]), t, &(F[i]), theta);
         }
 
-#       pragma omp for 
+#       pragma omp for schedule(dynamic, 4)
         for (i=0; i<N; i++) {
             V[i].x +=  dt * F[i].x;
             V[i].y +=  dt * F[i].y;
